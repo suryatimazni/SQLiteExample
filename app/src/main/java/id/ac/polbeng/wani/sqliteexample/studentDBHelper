@@ -1,0 +1,106 @@
+package wani.polbeng.ac.id.sqliteexample
+
+import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import wani.polbeng.ac.id.sqliteexample.databinding.ActivityUpdateBinding
+
+class UpdateActivity : AppCompatActivity() {
+    companion object {
+        const val EXTRA_STUDENT = "extra_student"
+    }
+
+    private lateinit var binding: ActivityUpdateBinding
+    private lateinit var studentDBHelper: StudentDBHelper
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityUpdateBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // Set up the toolbar
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+
+        // Retrieve student data from the intent
+        val studentData = intent.getParcelableExtra<StudentModel>(EXTRA_STUDENT) as StudentModel
+
+        // Populate the fields with student data
+        binding.etNIM.isEnabled = false
+        binding.etNIM.setText(studentData.nim)
+        binding.etNama.setText(studentData.name)
+        binding.etUmur.setText(studentData.age)
+
+        // Initialize the database helper
+        studentDBHelper = StudentDBHelper(this)
+
+        // Set up the update button click listener
+        binding.btnUpdate.setOnClickListener {
+            updateStudent()
+        }
+
+        // Set up the delete button click listener
+        binding.btnHapus.setOnClickListener {
+            showDeleteConfirmationDialog()
+        }
+    }
+
+    private fun updateStudent() {
+        val nim = binding.etNIM.text.toString()
+        val name = binding.etNama.text.toString()
+        val age = binding.etUmur.text.toString()
+
+        // Validate input
+        if (nim.isEmpty() || name.isEmpty() || age.isEmpty()) {
+            Toast.makeText(this, "Silahkan masukkan data NIM, nama, dan umur!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Create a new StudentModel object
+        val updatedStudent = StudentModel(nim = nim, name = name, age = age)
+        val updateCount = studentDBHelper.updateStudent(updatedStudent)
+
+        // Show result message
+        if (updateCount > 0) {
+            Toast.makeText(this, "Mahasiswa yang terupdate: $updateCount", Toast.LENGTH_SHORT).show()
+            finish()
+        } else {
+            Toast.makeText(this, "Tidak ada data mahasiswa yang diupdate, silahkan coba lagi!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showDeleteConfirmationDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Konfirmasi Hapus Data")
+            .setMessage("Apakah Anda yakin?")
+            .setPositiveButton("Ya") { _, _ ->
+                deleteStudent()
+            }
+            .setNegativeButton("Tidak") { dialog, _ ->
+                dialog.dismiss() // Dismiss the dialog
+            }
+
+        // Create and show the AlertDialog
+        val dialog: AlertDialog = builder.create()
+        dialog.show()
+    }
+
+    private fun deleteStudent() {
+        val nim = binding.etNIM.text.toString()
+        val deleteCount = studentDBHelper.deleteStudent(nim)
+
+        // Show result message
+        if (deleteCount > 0) {
+            Toast.makeText(this, "Mahasiswa yang terhapus: $deleteCount", Toast.LENGTH_SHORT).show()
+            finish()
+        } else {
+            Toast.makeText(this, "Tidak ada data mahasiswa yang dihapus, silahkan coba lagi!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onDestroy() {
+        studentDBHelper.close() // Close the database helper
+        super.onDestroy()
+    }
+}
